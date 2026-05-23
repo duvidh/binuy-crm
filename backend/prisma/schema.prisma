@@ -1,0 +1,655 @@
+// CRM for Israeli construction companies.
+// Provider is SQLite for zero-config dev. Switch `provider` to "postgresql"
+// and set DATABASE_URL accordingly for production.
+// NOTE: SQLite does not support native enums or the Json scalar, so those are
+// modeled as String fields. Allowed values live in src/constants/enums.ts and
+// are enforced by Zod at the API boundary. JSON payloads are stored as text.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("SALES") // UserRole
+  isActive      Boolean   @default(true)
+  phone         String?
+  avatarUrl     String?
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  failedLoginAttempts Int  @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  assignedContacts Contact[]      @relation("ContactAssignee")
+  managedProjects  Project[]      @relation("ProjectManager")
+  tasks            Task[]         @relation("TaskAssignee")
+  dashboardLayout  DashboardLayout?
+  activityLogs     ActivityLog[]
+  notifications    Notification[]
+  comments         Comment[]
+  savedViews       SavedView[]
+  refreshTokens    RefreshToken[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Contact {
+  id            String    @id @default(cuid())
+  fullName      String
+  phone         String
+  email         String?
+  address       String?
+  city          String?
+  projectType   String?
+  areaSqm       Float?
+  budget        Float?
+  leadType      String    @default("NEW")  // LeadType
+  status        String    @default("LEAD") // ContactStatus
+  source        String?
+  taxId         String?   // ת.ז / ח.פ / ע.מ
+  assignedToId  String?
+  assignedTo    User?     @relation("ContactAssignee", fields: [assignedToId], references: [id])
+  notes         String?
+  lastContactAt DateTime?
+  nextFollowUpAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  projects      Project[]
+  quotes        Quote[]
+  payments      Payment[]
+  documents     Document[]
+  tasks         Task[]
+  invoices      Invoice[]
+  pipelineEntries ContactPipelineEntry[]
+  entityTags    EntityTag[]
+  portalTokens  ClientPortalToken[]
+
+  @@index([phone])
+  @@index([status])
+  @@index([leadType])
+  @@index([assignedToId])
+  @@index([city])
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  name            String
+  contactId       String
+  contact         Contact   @relation(fields: [contactId], references: [id])
+  address         String?
+  city            String?
+  projectType     String?
+  status          String    @default("PLANNING") // ProjectStatus
+  startDatePlanned DateTime?
+  endDatePlanned   DateTime?
+  startDateActual  DateTime?
+  endDateActual    DateTime?
+  budget          Float?
+  budgetUsed      Float     @default(0)
+  managerId       String?
+  manager         User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  notes           String?
+  progress        Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  quotes      Quote[]
+  payments    Payment[]
+  documents   Document[]
+  tasks       Task[]
+  invoices    Invoice[]
+  milestones  ProjectMilestone[]
+  photos      ProjectPhoto[]
+  siteLogs    SiteLogEntry[]
+  checklists  Checklist[]
+  permits     Permit[]
+  expenses    Expense[]
+  supplierContracts SupplierContract[]
+
+  @@index([contactId])
+  @@index([status])
+  @@index([managerId])
+}
+
+model Quote {
+  id          String    @id @default(cuid())
+  quoteNumber String    @unique
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  date        DateTime  @default(now())
+  validUntil  DateTime?
+  status      String    @default("DRAFT") // QuoteStatus
+  vatRate     Float     @default(18)
+  discount    Float     @default(0)
+  discountType String   @default("AMOUNT") // AMOUNT | PERCENT
+  subtotal    Float     @default(0)
+  vatAmount   Float     @default(0)
+  total       Float     @default(0)
+  notes       String?
+  signedAt    DateTime?
+  signatureData String?
+  signedPdfPath String?
+  signToken   String?   @unique
+  signTokenExpiresAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  items QuoteItem[]
+
+  @@index([contactId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  section     String? // category grouping (פירוק, שלד, גמרים)
+  description String
+  quantity    Float   @default(1)
+  unit        String? // מ"ר, יח', מ"א, יום עבודה
+  unitPrice   Float   @default(0)
+  total       Float   @default(0)
+  notes       String?
+  order       Int     @default(0)
+
+  @@index([quoteId])
+}
+
+model PriceCatalogItem {
+  id          String  @id @default(cuid())
+  name        String
+  unit        String?
+  defaultPrice Float  @default(0)
+  category    String?
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+}
+
+model Invoice {
+  id          String    @id @default(cuid())
+  type        String    // TAX_INVOICE | RECEIPT | TAX_INVOICE_RECEIPT
+  number      String    @unique
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  date        DateTime  @default(now())
+  amount      Float     @default(0)
+  vatRate     Float     @default(18)
+  vatAmount   Float     @default(0)
+  withholdingTax Float  @default(0)
+  total       Float     @default(0)
+  status      String    @default("ISSUED")
+  notes       String?
+  signedPdfPath String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([contactId])
+  @@index([type])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  contactId     String?
+  contact       Contact?  @relation(fields: [contactId], references: [id])
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  amount        Float
+  date          DateTime  @default(now())
+  dueDate       DateTime?
+  method        String?   // payment method
+  status        String    @default("PENDING") // PaymentStatus
+  invoiceNumber String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([contactId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  contactId  String?
+  contact    Contact? @relation(fields: [contactId], references: [id])
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id])
+  filePath   String
+  fileName   String
+  fileType   String?
+  fileSize   Int?
+  category   String?
+  uploadedById String?
+  createdAt  DateTime @default(now())
+  deletedAt  DateTime?
+
+  @@index([contactId])
+  @@index([projectId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  endDate     DateTime?
+  assignedToId String?
+  assignedTo  User?     @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  type        String    @default("TASK")    // TaskType
+  priority    String    @default("NORMAL")  // TaskPriority
+  status      String    @default("OPEN")    // TaskStatus
+  reminder    String?   // minutes before, etc.
+  color       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([contactId])
+  @@index([projectId])
+}
+
+model PipelineStage {
+  id    String @id @default(cuid())
+  name  String
+  order Int    @default(0)
+  color String?
+  isActive Boolean @default(true)
+
+  entries ContactPipelineEntry[]
+}
+
+model ContactPipelineEntry {
+  id        String   @id @default(cuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  stageId   String
+  stage     PipelineStage @relation(fields: [stageId], references: [id])
+  enteredAt DateTime @default(now())
+
+  @@index([contactId])
+}
+
+model SettingsListItem {
+  id       String  @id @default(cuid())
+  listType String  // city | projectType | leadSource | taskType | unit | paymentMethod | documentCategory | expenseCategory
+  value    String
+  order    Int     @default(0)
+  color    String?
+  isActive Boolean @default(true)
+
+  @@index([listType])
+}
+
+model DashboardLayout {
+  id         String @id @default(cuid())
+  userId     String @unique
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layoutJson String // JSON string: { widgets: [{ i, type, x, y, w, h, config }] }
+  updatedAt  DateTime @updatedAt
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  entityType String
+  entityId   String?
+  action     String   // CREATE | UPDATE | DELETE | LOGIN | etc.
+  details    String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model CompanySettings {
+  id            String  @id @default("default")
+  name          String  @default("חברת בנייה")
+  businessId    String?
+  address       String?
+  phone         String?
+  email         String?
+  logoUrl       String?
+  vatRate       Float   @default(18)
+  quoteStartNumber Int  @default(1)
+  invoiceStartNumber Int @default(1)
+  receiptStartNumber Int @default(1)
+  withholdingTaxDefault Float @default(0)
+  exemptDealer  Boolean @default(false)
+  signatureUrl  String?
+  updatedAt     DateTime @updatedAt
+}
+
+// --- Section 9 extended models ---
+
+model Supplier {
+  id         String  @id @default(cuid())
+  name       String
+  field      String?
+  phone      String?
+  email      String?
+  businessId String?
+  rating     Int?    // 1-5
+  notes      String?
+  createdAt  DateTime @default(now())
+  deletedAt  DateTime?
+
+  contracts SupplierContract[]
+  expenses  Expense[]
+}
+
+model SupplierContract {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id])
+  amount     Float    @default(0)
+  status     String   @default("OPEN")
+  startDate  DateTime?
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId])
+  @@index([projectId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  category    String?
+  amount      Float    @default(0)
+  date        DateTime @default(now())
+  documentId  String?
+  description String?
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  @@index([projectId])
+}
+
+model ProjectMilestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int      @default(0)
+  plannedDate DateTime?
+  actualDate  DateTime?
+  progressPct Int      @default(0)
+  status      String   @default("PENDING")
+  assignedToId String?
+  paymentId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectPhoto {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filePath   String
+  phase      String?  // before | during | after
+  takenAt    DateTime?
+  caption    String?
+  uploadedById String?
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model SiteLogEntry {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date         DateTime @default(now())
+  workersCount Int      @default(0)
+  workDone     String?
+  notes        String?
+  photos       String?  // JSON array of paths
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ChecklistTemplate {
+  id          String @id @default(cuid())
+  projectType String?
+  name        String
+  itemsJson   String // JSON array of item texts
+}
+
+model Checklist {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId String?
+  name       String
+  items      ChecklistItem[]
+
+  @@index([projectId])
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text        String
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  completedById String?
+  order       Int      @default(0)
+
+  @@index([checklistId])
+}
+
+model Permit {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileNumber String?
+  gush       String?
+  helka      String?
+  status     String   @default("NONE")
+  issuedDate DateTime?
+  expiryDate DateTime?
+  documents  String?  // JSON array
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Tag {
+  id         String @id @default(cuid())
+  name       String
+  color      String @default("#3b82f6")
+  entityType String @default("contact")
+
+  entityTags EntityTag[]
+}
+
+model EntityTag {
+  id         String @id @default(cuid())
+  tagId      String
+  tag        Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  contactId  String?
+  contact    Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tagId])
+  @@index([entityId])
+}
+
+model SavedView {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType String
+  name       String
+  filtersJson String?
+  columnsJson String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  body       String
+  createdAt  DateTime @default(now())
+
+  mentions   Mention[]
+
+  @@index([entityType, entityId])
+}
+
+model Mention {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  readAt    DateTime?
+
+  @@index([userId])
+}
+
+model AutomationRule {
+  id             String  @id @default(cuid())
+  name           String
+  triggerType    String
+  conditionsJson String?
+  actionsJson    String?
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+
+  executions AutomationExecution[]
+}
+
+model AutomationExecution {
+  id         String   @id @default(cuid())
+  ruleId     String
+  rule       AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  entityId   String?
+  executedAt DateTime @default(now())
+  result     String?
+
+  @@index([ruleId])
+}
+
+model MessageTemplate {
+  id        String @id @default(cuid())
+  channel   String // whatsapp | sms | email
+  name      String
+  body      String
+  variables String? // JSON array
+}
+
+model SentMessage {
+  id         String   @id @default(cuid())
+  contactId  String?
+  channel    String
+  templateId String?
+  body       String
+  sentById   String?
+  status     String   @default("SENT")
+  sentAt     DateTime @default(now())
+
+  @@index([contactId])
+}
+
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  email       String
+  ip          String?
+  success     Boolean
+  attemptedAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model ClientPortalToken {
+  id        String   @id @default(cuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime?
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+}
+
+model Backup {
+  id        String   @id @default(cuid())
+  filePath  String
+  size      Int      @default(0)
+  createdAt DateTime @default(now())
+}
