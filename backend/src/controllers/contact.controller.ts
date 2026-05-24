@@ -10,6 +10,7 @@ import {
 } from '../validators/contact.validators.js';
 import * as contactService from '../services/contact.service.js';
 import { fireEvent, TriggerType } from '../services/automation.service.js';
+import { CONTACT_STATUSES, LEAD_TYPES } from '../constants/enums.js';
 
 function cleanEmail<T extends { email?: string | unknown }>(data: T): T {
   if (data.email === '') (data as { email?: string | null }).email = null;
@@ -100,11 +101,11 @@ export const bulk = asyncHandler(async (req: Request, res: Response) => {
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { assignedToId: value || null } });
       break;
     case 'status':
-      if (!value) throw badRequest('חסר ערך סטטוס');
+      if (!value || !(CONTACT_STATUSES as readonly string[]).includes(value)) throw badRequest('ערך סטטוס לא תקין');
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { status: value } });
       break;
     case 'leadType':
-      if (!value) throw badRequest('חסר ערך סוג ליד');
+      if (!value || !(LEAD_TYPES as readonly string[]).includes(value)) throw badRequest('ערך סוג ליד לא תקין');
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { leadType: value } });
       break;
     case 'delete':

@@ -43,13 +43,17 @@ export async function nextQuoteNumber(): Promise<string> {
   const company = await prisma.companySettings.findUnique({ where: { id: 'default' } });
   const startNumber = company?.quoteStartNumber ?? 1;
 
-  const last = await prisma.quote.findFirst({
+  // Compute the max sequence numerically — a lexical `orderBy desc` would treat
+  // "999" as greater than "1000" and break (collide/regress) past 999.
+  const existing = await prisma.quote.findMany({
     where: { quoteNumber: { startsWith: prefix } },
-    orderBy: { quoteNumber: 'desc' },
     select: { quoteNumber: true },
   });
-  const lastSeq = last ? Number(last.quoteNumber.split('-')[2]) : startNumber - 1;
-  const seq = Math.max(lastSeq + 1, startNumber);
+  const maxSeq = existing.reduce(
+    (max, q) => Math.max(max, Number(q.quoteNumber.slice(prefix.length)) || 0),
+    startNumber - 1,
+  );
+  const seq = Math.max(maxSeq + 1, startNumber);
   return `${prefix}${String(seq).padStart(3, '0')}`;
 }
 
