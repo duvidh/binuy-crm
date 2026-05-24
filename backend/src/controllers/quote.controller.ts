@@ -8,6 +8,7 @@ import {
   quoteUpdateSchema,
 } from '../validators/quote.validators.js';
 import * as quoteService from '../services/quote.service.js';
+import { fireEvent, TriggerType } from '../services/automation.service.js';
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const params = parseListParams(req, 'date');
@@ -141,6 +142,9 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
     });
   });
   logActivity({ userId: req.user?.userId, entityType: 'Quote', entityId: id, action: 'UPDATE' });
+  if (input.status === 'ACCEPTED' && existing.status !== 'ACCEPTED') {
+    void fireEvent(TriggerType.QUOTE_ACCEPTED, { contactId: quote.contactId, projectId: quote.projectId, entity: quote as unknown as Record<string, unknown> });
+  }
   res.json(quote);
 });
 

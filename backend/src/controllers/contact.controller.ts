@@ -9,7 +9,7 @@ import {
   bulkActionSchema,
 } from '../validators/contact.validators.js';
 import * as contactService from '../services/contact.service.js';
-import { ContactStatus } from '../constants/enums.js';
+import { fireEvent, TriggerType } from '../services/automation.service.js';
 
 function cleanEmail<T extends { email?: string | unknown }>(data: T): T {
   if (data.email === '') (data as { email?: string | null }).email = null;
@@ -63,6 +63,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
     action: 'CREATE',
     details: { fullName: contact.fullName },
   });
+  void fireEvent(TriggerType.LEAD_CREATED, { contactId: contact.id, entity: contact as unknown as Record<string, unknown> });
   res.status(201).json(contact);
 });
 

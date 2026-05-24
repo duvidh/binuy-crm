@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, LogOut, User as UserIcon, Menu } from 'lucide-react';
+import { Bell, Search, LogOut, User as UserIcon, Menu, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/stores/auth';
+import { useNotifications, useMarkNotificationRead, useMarkAllRead } from '@/hooks/useNotifications';
+import { formatRelative } from '@/lib/format';
 import { he } from '@/locales/he';
 
 interface TopbarProps {
@@ -20,6 +22,9 @@ interface TopbarProps {
 export function Topbar({ onOpenSearch, onOpenSidebar }: TopbarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { data: notif } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAll = useMarkAllRead();
 
   const initials = user?.name
     ?.split(' ')
@@ -43,9 +48,48 @@ export function Topbar({ onOpenSearch, onOpenSidebar }: TopbarProps) {
       </button>
 
       <div className="ms-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative" title={he.nav.dashboard}>
-          <Bell className="h-5 w-5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative" title={he.notifications.title}>
+              <Bell className="h-5 w-5" />
+              {!!notif?.unread && (
+                <span className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {notif.unread > 9 ? '9+' : notif.unread}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <DropdownMenuLabel className="px-0">{he.notifications.title}</DropdownMenuLabel>
+              {!!notif?.unread && (
+                <button onClick={() => markAll.mutate()} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                  <CheckCheck className="h-3.5 w-3.5" /> {he.notifications.markAllRead}
+                </button>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-80 overflow-y-auto">
+              {!notif || notif.notifications.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">{he.notifications.empty}</p>
+              ) : (
+                notif.notifications.map((n) => (
+                  <DropdownMenuItem
+                    key={n.id}
+                    className={`flex-col items-start gap-0.5 ${n.read ? 'opacity-60' : ''}`}
+                    onClick={() => {
+                      if (!n.read) markRead.mutate(n.id);
+                      if (n.link) navigate(n.link);
+                    }}
+                  >
+                    <span className="text-sm">{n.message}</span>
+                    <span className="text-xs text-muted-foreground">{formatRelative(n.createdAt)}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch } from 'lucide-react';
+import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch, Zap } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import {
   useUpdateCompany,
 } from '@/hooks/useSettings';
 import { useUsers, useCreateUser } from '@/hooks/useUsers';
+import { useAutomations, useCreateAutomation, useUpdateAutomation, useDeleteAutomation } from '@/hooks/useAutomations';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/stores/auth';
 import { apiErrorMessage } from '@/lib/api';
 import { he } from '@/locales/he';
@@ -37,11 +39,13 @@ export function SettingsPage() {
           <TabsTrigger value="lists"><ListTree className="h-4 w-4" /> {he.settings.lists}</TabsTrigger>
           <TabsTrigger value="company"><Building2 className="h-4 w-4" /> {he.settings.company}</TabsTrigger>
           <TabsTrigger value="pipeline"><GitBranch className="h-4 w-4" /> {he.settings.pipeline}</TabsTrigger>
+          {isAdmin && <TabsTrigger value="automations"><Zap className="h-4 w-4" /> {he.automations.title}</TabsTrigger>}
           {isAdmin && <TabsTrigger value="users"><UsersIcon className="h-4 w-4" /> {he.settings.users}</TabsTrigger>}
         </TabsList>
         <TabsContent value="lists"><ListsTab /></TabsContent>
         <TabsContent value="company"><CompanyTab /></TabsContent>
         <TabsContent value="pipeline"><PipelineTab /></TabsContent>
+        {isAdmin && <TabsContent value="automations"><AutomationsTab /></TabsContent>}
         {isAdmin && <TabsContent value="users"><UsersTab /></TabsContent>}
       </Tabs>
     </div>
@@ -166,6 +170,87 @@ function PipelineTab() {
         </ol>
       </CardContent>
     </Card>
+  );
+}
+
+const TRIGGERS = ['LEAD_CREATED', 'LEAD_IDLE', 'QUOTE_ACCEPTED', 'PROJECT_STATUS_CHANGED', 'PAYMENT_OVERDUE'] as const;
+
+function AutomationsTab() {
+  const { data: rules } = useAutomations();
+  const create = useCreateAutomation();
+  const update = useUpdateAutomation();
+  const del = useDeleteAutomation();
+  const [name, setName] = useState('');
+  const [trigger, setTrigger] = useState<string>('LEAD_IDLE');
+  const [days, setDays] = useState('7');
+  const [taskTitle, setTaskTitle] = useState('');
+
+  const add = async () => {
+    if (!name.trim() || !taskTitle.trim()) {
+      toast.error(he.common.required);
+      return;
+    }
+    const conditions: Record<string, unknown> = {};
+    if (trigger === 'LEAD_IDLE') conditions.idleDays = Number(days) || 7;
+    if (trigger === 'PAYMENT_OVERDUE') conditions.overdueDays = Number(days) || 14;
+    try {
+      await create.mutateAsync({
+        name,
+        triggerType: trigger,
+        conditions,
+        actions: [{ type: 'CREATE_TASK', title: taskTitle, dueInDays: 1 }],
+      });
+      setName(''); setTaskTitle('');
+      toast.success(he.common.saved);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  const needsDays = trigger === 'LEAD_IDLE' || trigger === 'PAYMENT_OVERDUE';
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6">
+          <p className="mb-3 text-sm text-muted-foreground">צור חוק: כשמתרחש הטריגר — תיווצר משימה אוטומטית.</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div><Label>{he.automations.name}</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div>
+              <Label>{he.automations.trigger}</Label>
+              <Select value={trigger} onValueChange={setTrigger}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{TRIGGERS.map((t) => <SelectItem key={t} value={t}>{he.automations.triggers[t]}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            {needsDays && <div><Label>ימים</Label><Input type="number" dir="ltr" value={days} onChange={(e) => setDays(e.target.value)} /></div>}
+            <div className={needsDays ? '' : 'sm:col-span-1'}><Label>{he.automations.actionTypes.CREATE_TASK} — {he.tasks.fields.title}</Label><Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} /></div>
+            <div className="flex items-end"><Button onClick={add}><Plus className="h-4 w-4" /> {he.automations.newRule}</Button></div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6">
+          {!rules || rules.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{he.automations.empty}</p>
+          ) : (
+            <div className="space-y-2">
+              {rules.map((r) => (
+                <div key={r.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <div className="font-medium">{r.name}</div>
+                    <div className="text-xs text-muted-foreground">{he.automations.triggers[r.triggerType as keyof typeof he.automations.triggers] ?? r.triggerType} · {he.automations.executions}: {r._count?.executions ?? 0}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={r.isActive} onCheckedChange={(v) => update.mutate({ id: r.id, isActive: v })} />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => del.mutate(r.id)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { parseListParams, paginated } from '../utils/query.js';
 import { logActivity } from '../services/activity.service.js';
 import { projectCreateSchema, projectUpdateSchema } from '../validators/project.validators.js';
 import { getProfitability } from '../services/project.service.js';
+import { fireEvent, TriggerType } from '../services/automation.service.js';
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const params = parseListParams(req);
@@ -73,6 +74,9 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
   if (!existing) throw notFound('פרויקט לא נמצא');
   const project = await prisma.project.update({ where: { id }, data: input });
   logActivity({ userId: req.user?.userId, entityType: 'Project', entityId: id, action: 'UPDATE' });
+  if (input.status && input.status !== existing.status) {
+    void fireEvent(TriggerType.PROJECT_STATUS_CHANGED, { contactId: project.contactId, projectId: project.id, entity: project as unknown as Record<string, unknown> });
+  }
   res.json(project);
 });
 

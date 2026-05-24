@@ -13,6 +13,8 @@ import { QuoteSignPage } from '@/pages/QuoteSignPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { ProjectDetailPage } from '@/pages/ProjectDetailPage';
 import { FinancePage } from '@/pages/FinancePage';
+import { TasksPage } from '@/pages/TasksPage';
+import { CalendarPage } from '@/pages/CalendarPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { he } from '@/locales/he';
 
@@ -56,8 +58,8 @@ export default function App() {
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
         <Route path="finance" element={<FinancePage />} />
-        <Route path="calendar" element={<PlaceholderPage titleKey="calendar" />} />
-        <Route path="tasks" element={<PlaceholderPage titleKey="tasks" />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="tasks" element={<TasksPage />} />
         <Route path="reports" element={<PlaceholderPage titleKey="reports" />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

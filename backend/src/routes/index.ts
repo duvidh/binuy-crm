@@ -11,6 +11,9 @@ import userRoutes from './user.routes.js';
 import tagRoutes from './tag.routes.js';
 import projectRoutes from './project.routes.js';
 import financeRoutes from './finance.routes.js';
+import taskRoutes from './task.routes.js';
+import notificationRoutes from './notification.routes.js';
+import automationRoutes from './automation.routes.js';
 
 const router = Router();
 
@@ -27,5 +30,8 @@ router.use('/users', authenticate, userRoutes);
 router.use('/tags', authenticate, tagRoutes);
 router.use('/projects', authenticate, projectRoutes);
 router.use('/finance', authenticate, financeRoutes);
+router.use('/tasks', authenticate, taskRoutes);
+router.use('/notifications', authenticate, notificationRoutes);
+router.use('/automations', authenticate, automationRoutes);
 
 export default router;
