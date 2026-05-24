@@ -97,6 +97,17 @@ export function useConvertContact() {
   });
 }
 
+export function useMoveContactStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, stageId }: { id: string; stageId: string }) =>
+      (await api.post(`/contacts/${id}/pipeline-stage`, { stageId })).data,
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['contact', vars.id] });
+    },
+  });
+}
+
 export function useBulkContacts() {
   const qc = useQueryClient();
   return useMutation({

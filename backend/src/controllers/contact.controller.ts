@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 import { parseListParams, paginated } from '../utils/query.js';
@@ -92,6 +93,13 @@ export const convert = asyncHandler(async (req: Request, res: Response) => {
   const contact = await contactService.convertToCustomer(id);
   logActivity({ userId: req.user?.userId, entityType: 'Contact', entityId: id, action: 'CONVERT' });
   res.json(contact);
+});
+
+export const moveStage = asyncHandler(async (req: Request, res: Response) => {
+  const { stageId } = z.object({ stageId: z.string().min(1) }).parse(req.body);
+  const entry = await contactService.moveToStage(req.params.id, stageId);
+  logActivity({ userId: req.user?.userId, entityType: 'Contact', entityId: req.params.id, action: 'PIPELINE_MOVE', details: { stageId } });
+  res.status(201).json(entry);
 });
 
 export const bulk = asyncHandler(async (req: Request, res: Response) => {

@@ -457,6 +457,13 @@ export const he = {
     company: 'פרטי החברה',
     users: 'משתמשים',
     pipeline: 'שלבי פייפליין',
+    pipelineHint: 'הגדר את שלבי תהליך המכירה. סדר השלבים נשמר אוטומטית.',
+    addStage: 'הוסף שלב',
+    stageName: 'שם השלב',
+    stageColor: 'צבע',
+    moveToStage: 'העבר לשלב',
+    moveUp: 'הזז אחורה',
+    moveDown: 'הזז קדימה',
     listTypes: {
       city: 'ערים',
       projectType: 'סוגי פרויקטים',

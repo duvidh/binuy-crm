@@ -18,10 +18,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ContactFormDialog } from '@/components/contacts/ContactFormDialog';
-import { useContact, useContactActivity, useConvertContact } from '@/hooks/useContacts';
+import { useContact, useContactActivity, useConvertContact, useMoveContactStage } from '@/hooks/useContacts';
+import { usePipelineStages } from '@/hooks/useSettings';
+import { apiErrorMessage } from '@/lib/api';
 import { useQuotes } from '@/hooks/useQuotes';
 import { formatCurrency, formatDate, formatDateTime, formatPhone, whatsappLink } from '@/lib/format';
 import { leadTypeLabel, leadTypeVariant, quoteStatusLabel, quoteStatusVariant } from '@/lib/contactMeta';
@@ -173,21 +176,7 @@ export function ContactDetailPage() {
 
         {isCustomer && (
           <TabsContent value="pipeline">
-            <Card>
-              <CardContent className="pt-6">
-                {!contact.pipelineEntries || contact.pipelineEntries.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">{he.common.noResults}</p>
-                ) : (
-                  <ol className="flex flex-wrap gap-2">
-                    {contact.pipelineEntries.map((e) => (
-                      <li key={e.id}>
-                        <Badge style={{ backgroundColor: `${e.stage.color}20`, color: e.stage.color ?? undefined }}>{e.stage.name}</Badge>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </CardContent>
-            </Card>
+            <PipelinePanel contactId={contact.id} entries={contact.pipelineEntries ?? []} />
           </TabsContent>
         )}
       </Tabs>
@@ -227,5 +216,64 @@ function Field({
       </div>
       <div className="mt-0.5 font-medium" dir={ltr ? 'ltr' : undefined}>{value || '—'}</div>
     </div>
+  );
+}
+
+function PipelinePanel({
+  contactId,
+  entries,
+}: {
+  contactId: string;
+  entries: { id: string; stage: { id: string; name: string; color?: string | null }; enteredAt: string }[];
+}) {
+  const { data: stages } = usePipelineStages();
+  const move = useMoveContactStage();
+  const [stageId, setStageId] = useState('');
+
+  const submit = async () => {
+    if (!stageId) return;
+    try {
+      await move.mutateAsync({ id: contactId, stageId });
+      setStageId('');
+      toast.success(he.common.saved);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="w-56">
+            <div className="mb-1 text-sm text-muted-foreground">{he.settings.moveToStage}</div>
+            <Select value={stageId} onValueChange={setStageId}>
+              <SelectTrigger><SelectValue placeholder={he.settings.pipeline} /></SelectTrigger>
+              <SelectContent>
+                {(stages ?? []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={submit} disabled={!stageId || move.isPending}>
+            <Plus className="h-4 w-4" /> {he.settings.moveToStage}
+          </Button>
+        </div>
+
+        {entries.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">{he.common.noResults}</p>
+        ) : (
+          <ol className="space-y-2">
+            {entries.map((e) => (
+              <li key={e.id} className="flex items-center gap-2">
+                <Badge style={{ backgroundColor: `${e.stage.color}20`, color: e.stage.color ?? undefined }}>{e.stage.name}</Badge>
+                <span className="text-xs text-muted-foreground">{formatDateTime(e.enteredAt)}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </CardContent>
+    </Card>
   );
 }

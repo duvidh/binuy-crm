@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import type { ListParams } from '../utils/query.js';
 import { LeadType, ContactStatus } from '../constants/enums.js';
+import { notFound } from '../utils/errors.js';
 
 export interface ContactFilters {
   city?: string;
@@ -90,6 +91,18 @@ export async function getContact(id: string) {
       pipelineEntries: { include: { stage: true }, orderBy: { enteredAt: 'desc' } },
       _count: { select: { quotes: true, projects: true, tasks: true, payments: true, documents: true } },
     },
+  });
+}
+
+// Record a contact entering a pipeline stage (advancing through the funnel).
+export async function moveToStage(contactId: string, stageId: string) {
+  const contact = await prisma.contact.findFirst({ where: { id: contactId, deletedAt: null } });
+  if (!contact) throw notFound('איש קשר לא נמצא');
+  const stage = await prisma.pipelineStage.findFirst({ where: { id: stageId, isActive: true } });
+  if (!stage) throw notFound('שלב לא נמצא');
+  return prisma.contactPipelineEntry.create({
+    data: { contactId, stageId },
+    include: { stage: true },
   });
 }
 

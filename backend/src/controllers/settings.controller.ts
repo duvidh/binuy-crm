@@ -126,6 +126,14 @@ export const createStage = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json(stage);
 });
 
+export const reorderStages = asyncHandler(async (req: Request, res: Response) => {
+  const { ids } = z.object({ ids: z.array(z.string().min(1)) }).parse(req.body);
+  await prisma.$transaction(
+    ids.map((id, index) => prisma.pipelineStage.update({ where: { id }, data: { order: index } })),
+  );
+  res.json({ ok: true });
+});
+
 export const updateStage = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const data = stageSchema.partial().parse(req.body);

@@ -18,6 +18,7 @@ router.delete('/lists/:id', authorize('ADMIN'), ctrl.deleteListItem);
 router.put('/company', authorize('ADMIN'), ctrl.updateCompany);
 
 router.post('/pipeline-stages', authorize('ADMIN'), ctrl.createStage);
+router.patch('/pipeline-stages/reorder', authorize('ADMIN'), ctrl.reorderStages);
 router.patch('/pipeline-stages/:id', authorize('ADMIN'), ctrl.updateStage);
 router.delete('/pipeline-stages/:id', authorize('ADMIN'), ctrl.deleteStage);
 

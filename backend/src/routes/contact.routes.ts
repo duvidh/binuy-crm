@@ -19,6 +19,7 @@ router.post('/import', authorize(...NO_VIEWER), ctrl.importContacts);
 router.post('/bulk', authorize(...NO_VIEWER), ctrl.bulk);
 router.post('/comments', comments.createComment);
 router.post('/:id/convert', authorize(...NO_VIEWER), ctrl.convert);
+router.post('/:id/pipeline-stage', authorize(...NO_VIEWER), ctrl.moveStage);
 router.post('/:id/portal-token', authorize(...NO_VIEWER), ctrl.portalToken);
 
 router.patch('/:id', authorize(...NO_VIEWER), ctrl.update);
