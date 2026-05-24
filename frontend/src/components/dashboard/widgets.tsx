@@ -214,7 +214,7 @@ export function RevenueChartWidget() {
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
         <XAxis dataKey="month" fontSize={11} reversed />
         <YAxis fontSize={11} tickFormatter={(v) => `${v / 1000}k`} orientation="right" />
-        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+        <Tooltip formatter={(v: number) => formatCurrency(v)} wrapperStyle={{ direction: 'rtl' }} />
         <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
@@ -229,7 +229,7 @@ function PieWidget({ data, empty }: { data: { name: string; value: number }[]; e
         <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e) => e.name}>
           {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
         </Pie>
-        <Tooltip />
+        <Tooltip wrapperStyle={{ direction: 'rtl' }} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -248,9 +248,9 @@ export function LeadsByTypeWidget() {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data.leadsByType} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey="name" fontSize={11} />
+        <XAxis dataKey="name" fontSize={11} reversed />
         <YAxis fontSize={11} allowDecimals={false} orientation="right" />
-        <Tooltip />
+        <Tooltip wrapperStyle={{ direction: 'rtl' }} />
         <Bar dataKey="value" fill="#f97316" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -269,7 +269,7 @@ export function SalesFunnelWidget() {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <FunnelChart>
-        <Tooltip />
+        <Tooltip wrapperStyle={{ direction: 'rtl' }} />
         <Funnel dataKey="value" data={funnel} isAnimationActive>
           <LabelList position="right" fill="#fff" stroke="none" dataKey="name" />
         </Funnel>
