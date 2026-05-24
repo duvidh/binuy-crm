@@ -653,3 +653,10 @@ model Backup {
   size      Int      @default(0)
   createdAt DateTime @default(now())
 }
+
+// Atomic sequence counters (e.g. per-year quote numbering) to avoid
+// read-then-write races that would produce duplicate numbers.
+model Counter {
+  key   String @id
+  value Int    @default(0)
+}
