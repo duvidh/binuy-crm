@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { asyncHandler } from '../utils/errors.js';
+import { asyncHandler, notFound } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 
 const commentSchema = z.object({
@@ -51,6 +51,10 @@ export const createComment = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const deleteComment = asyncHandler(async (req: Request, res: Response) => {
-  await prisma.comment.delete({ where: { id: req.params.id } });
+  // Only the author may delete their own comment; ADMIN may delete any.
+  const isAdmin = req.user?.role === 'ADMIN';
+  const where = isAdmin ? { id: req.params.id } : { id: req.params.id, userId: req.user!.userId };
+  const { count } = await prisma.comment.deleteMany({ where });
+  if (count === 0) throw notFound('הערה לא נמצאה');
   res.json({ ok: true });
 });

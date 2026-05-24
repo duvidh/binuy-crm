@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 import { parseListParams, paginated } from '../utils/query.js';
@@ -10,6 +11,7 @@ import {
 } from '../validators/contact.validators.js';
 import * as contactService from '../services/contact.service.js';
 import { fireEvent, TriggerType } from '../services/automation.service.js';
+import { CONTACT_STATUSES, LEAD_TYPES } from '../constants/enums.js';
 
 function cleanEmail<T extends { email?: string | unknown }>(data: T): T {
   if (data.email === '') (data as { email?: string | null }).email = null;
@@ -53,6 +55,17 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => {
   res.json(contact);
 });
 
+// Customers grouped by their current pipeline stage (for the pipeline board).
+export const pipelineBoard = asyncHandler(async (_req: Request, res: Response) => {
+  const contacts = await prisma.contact.findMany({
+    where: { deletedAt: null, status: 'CUSTOMER' },
+    orderBy: { updatedAt: 'desc' },
+    take: 500,
+    include: { pipelineEntries: { orderBy: { enteredAt: 'desc' }, take: 1, select: { stageId: true } } },
+  });
+  res.json(contacts.map((c) => ({ ...c, stageId: c.pipelineEntries[0]?.stageId ?? null })));
+});
+
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const input = cleanEmail(contactCreateSchema.parse(req.body));
   const contact = await prisma.contact.create({ data: input });
@@ -93,6 +106,13 @@ export const convert = asyncHandler(async (req: Request, res: Response) => {
   res.json(contact);
 });
 
+export const moveStage = asyncHandler(async (req: Request, res: Response) => {
+  const { stageId } = z.object({ stageId: z.string().min(1) }).parse(req.body);
+  const entry = await contactService.moveToStage(req.params.id, stageId);
+  logActivity({ userId: req.user?.userId, entityType: 'Contact', entityId: req.params.id, action: 'PIPELINE_MOVE', details: { stageId } });
+  res.status(201).json(entry);
+});
+
 export const bulk = asyncHandler(async (req: Request, res: Response) => {
   const { ids, action, value } = bulkActionSchema.parse(req.body);
   switch (action) {
@@ -100,11 +120,11 @@ export const bulk = asyncHandler(async (req: Request, res: Response) => {
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { assignedToId: value || null } });
       break;
     case 'status':
-      if (!value) throw badRequest('חסר ערך סטטוס');
+      if (!value || !(CONTACT_STATUSES as readonly string[]).includes(value)) throw badRequest('ערך סטטוס לא תקין');
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { status: value } });
       break;
     case 'leadType':
-      if (!value) throw badRequest('חסר ערך סוג ליד');
+      if (!value || !(LEAD_TYPES as readonly string[]).includes(value)) throw badRequest('ערך סוג ליד לא תקין');
       await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { leadType: value } });
       break;
     case 'delete':

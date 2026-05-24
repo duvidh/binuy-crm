@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { asyncHandler, notFound } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 import { parseListParams, paginated } from '../utils/query.js';
@@ -213,11 +214,16 @@ export const listCatalog = asyncHandler(async (_req: Request, res: Response) => 
   res.json(items);
 });
 
+const catalogItemSchema = z.object({
+  name: z.string().min(1),
+  unit: z.string().min(1),
+  defaultPrice: z.coerce.number().nonnegative().default(0),
+  category: z.string().optional(),
+});
+
 export const createCatalogItem = asyncHandler(async (req: Request, res: Response) => {
-  const { name, unit, defaultPrice, category } = req.body;
-  const item = await prisma.priceCatalogItem.create({
-    data: { name, unit, defaultPrice: Number(defaultPrice) || 0, category },
-  });
+  const input = catalogItemSchema.parse(req.body);
+  const item = await prisma.priceCatalogItem.create({ data: input });
   res.status(201).json(item);
 });
 

@@ -55,6 +55,44 @@ export function usePipelineStages() {
   });
 }
 
+function invalidatePipeline(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['settings', 'pipeline'] });
+}
+
+export function useCreateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { name: string; color?: string }) =>
+      (await api.post('/settings/pipeline-stages', input)).data,
+    onSuccess: () => invalidatePipeline(qc),
+  });
+}
+
+export function useUpdateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; color?: string }) =>
+      (await api.patch(`/settings/pipeline-stages/${id}`, data)).data,
+    onSuccess: () => invalidatePipeline(qc),
+  });
+}
+
+export function useDeleteStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await api.delete(`/settings/pipeline-stages/${id}`)).data,
+    onSuccess: () => invalidatePipeline(qc),
+  });
+}
+
+export function useReorderStages() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => (await api.patch('/settings/pipeline-stages/reorder', { ids })).data,
+    onSuccess: () => invalidatePipeline(qc),
+  });
+}
+
 export function useCompany() {
   return useQuery({
     queryKey: ['settings', 'company'],

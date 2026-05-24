@@ -37,19 +37,37 @@ function round2(n: number): number {
 }
 
 // QT-{YEAR}-{SEQ padded to 3}. Sequence resets per year, honors configured start.
+// The sequence is allocated atomically via a per-year Counter row inside a
+// transaction, so concurrent requests can never receive the same number.
 export async function nextQuoteNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `QT-${year}-`;
   const company = await prisma.companySettings.findUnique({ where: { id: 'default' } });
   const startNumber = company?.quoteStartNumber ?? 1;
+  const counterKey = `quote:${year}`;
 
-  const last = await prisma.quote.findFirst({
-    where: { quoteNumber: { startsWith: prefix } },
-    orderBy: { quoteNumber: 'desc' },
-    select: { quoteNumber: true },
+  const seq = await prisma.$transaction(async (tx) => {
+    const existingCounter = await tx.counter.findUnique({ where: { key: counterKey } });
+    if (!existingCounter) {
+      // First quote of the year: seed from any pre-existing quotes (legacy data)
+      // and the configured start number, then claim the next value.
+      const quotes = await tx.quote.findMany({
+        where: { quoteNumber: { startsWith: prefix } },
+        select: { quoteNumber: true },
+      });
+      const maxSeq = quotes.reduce(
+        (max, q) => Math.max(max, Number(q.quoteNumber.slice(prefix.length)) || 0),
+        startNumber - 1,
+      );
+      const value = maxSeq + 1;
+      await tx.counter.create({ data: { key: counterKey, value } });
+      return value;
+    }
+    const value = Math.max(existingCounter.value + 1, startNumber);
+    await tx.counter.update({ where: { key: counterKey }, data: { value } });
+    return value;
   });
-  const lastSeq = last ? Number(last.quoteNumber.split('-')[2]) : startNumber - 1;
-  const seq = Math.max(lastSeq + 1, startNumber);
+
   return `${prefix}${String(seq).padStart(3, '0')}`;
 }
 

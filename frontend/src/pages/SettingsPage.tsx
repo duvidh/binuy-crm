@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch, Zap, MessageSquare, History, RotateCcw, Download } from 'lucide-react';
+import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch, Zap, MessageSquare, History, RotateCcw, Download, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useTemplates, useCreateTemplate, useDeleteTemplate, useAuditLog, useTrash, useRestore } from '@/hooks/useAdmin';
@@ -19,6 +19,10 @@ import {
   useAddListItem,
   useDeleteListItem,
   usePipelineStages,
+  useCreateStage,
+  useUpdateStage,
+  useDeleteStage,
+  useReorderStages,
   useCompany,
   useUpdateCompany,
 } from '@/hooks/useSettings';
@@ -166,17 +170,84 @@ function CompanyTab() {
 }
 
 function PipelineTab() {
+  const isAdmin = useAuth((s) => s.hasRole('ADMIN'));
   const { data } = usePipelineStages();
+  const createStage = useCreateStage();
+  const updateStage = useUpdateStage();
+  const deleteStage = useDeleteStage();
+  const reorderStages = useReorderStages();
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#3b82f6');
+
+  const stages = data ?? [];
+
+  const add = async () => {
+    if (!name.trim()) return;
+    try {
+      await createStage.mutateAsync({ name: name.trim(), color });
+      setName('');
+      toast.success(he.common.saved);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  const move = async (index: number, dir: -1 | 1) => {
+    const next = [...stages];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    try {
+      await reorderStages.mutateAsync(next.map((s) => s.id));
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await deleteStage.mutateAsync(id);
+      toast.success(he.common.deleted);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
   return (
     <Card>
-      <CardContent className="pt-6">
-        <ol className="flex flex-wrap items-center gap-2">
-          {data?.map((stage, i) => (
-            <li key={stage.id} className="flex items-center gap-2">
+      <CardContent className="space-y-4 pt-6">
+        <p className="text-sm text-muted-foreground">{he.settings.pipelineHint}</p>
+
+        {isAdmin && (
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[160px]">
+              <Label>{he.settings.stageName}</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+            </div>
+            <div>
+              <Label>{he.settings.stageColor}</Label>
+              <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-14 p-1" />
+            </div>
+            <Button onClick={add} disabled={createStage.isPending}><Plus className="h-4 w-4" /> {he.settings.addStage}</Button>
+          </div>
+        )}
+
+        <ol className="space-y-2">
+          {stages.map((stage, i) => (
+            <li key={stage.id} className="flex items-center gap-2 rounded-md border p-2">
+              <span className="text-sm text-muted-foreground">{i + 1}</span>
               <Badge style={{ backgroundColor: `${stage.color}20`, color: stage.color ?? undefined }}>{stage.name}</Badge>
-              {i < data.length - 1 && <span className="text-muted-foreground">←</span>}
+              {isAdmin && (
+                <div className="ms-auto flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={i === 0} title={he.settings.moveUp} onClick={() => move(i, -1)}><ChevronUp className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={i === stages.length - 1} title={he.settings.moveDown} onClick={() => move(i, 1)}><ChevronDown className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title={he.common.edit} onClick={() => { const n = prompt(he.settings.stageName, stage.name); if (n && n.trim()) updateStage.mutate({ id: stage.id, name: n.trim() }); }}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title={he.common.delete} onClick={() => remove(stage.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              )}
             </li>
           ))}
+          {stages.length === 0 && <p className="text-sm text-muted-foreground">{he.common.noResults}</p>}
         </ol>
       </CardContent>
     </Card>

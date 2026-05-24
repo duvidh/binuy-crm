@@ -22,3 +22,11 @@ export const env = {
   uploadDir: process.env.UPLOAD_DIR ?? './uploads',
   isProd: process.env.NODE_ENV === 'production',
 };
+
+// In production, refuse to start with the well-known development secrets.
+const DEV_SECRETS = ['dev-access-secret', 'dev-refresh-secret'];
+if (env.isProd && (DEV_SECRETS.includes(env.jwtAccessSecret) || DEV_SECRETS.includes(env.jwtRefreshSecret))) {
+  throw new Error(
+    'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set to strong, non-default values in production.',
+  );
+}

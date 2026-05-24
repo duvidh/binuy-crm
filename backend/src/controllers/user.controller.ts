@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { asyncHandler } from '../utils/errors.js';
+import { asyncHandler, conflict } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 import { hashPassword } from '../utils/password.js';
 import { validatePasswordPolicy } from '../services/auth.service.js';
@@ -38,6 +38,8 @@ const createSchema = z.object({
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const input = createSchema.parse(req.body);
   validatePasswordPolicy(input.password);
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) throw conflict('משתמש עם אימייל זה כבר קיים');
   const user = await prisma.user.create({
     data: {
       name: input.name,

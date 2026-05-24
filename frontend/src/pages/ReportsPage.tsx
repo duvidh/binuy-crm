@@ -66,14 +66,14 @@ function SalesReport({ range }: { range: { from: string; to: string } }) {
         <Stat label={he.reports.winRate} value={`${data.winRate}%`} />
       </div>
       <Card><CardContent className="pt-6">
-        <div dir="ltr" style={{ height: 300 }}>
+        <div style={{ height: 300 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.series}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="month" fontSize={12} />
-              <YAxis fontSize={12} tickFormatter={(v) => `${v / 1000}k`} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Legend />
+              <XAxis dataKey="month" fontSize={12} reversed />
+              <YAxis fontSize={12} tickFormatter={(v) => `${v / 1000}k`} orientation="right" />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} wrapperStyle={{ direction: 'rtl' }} />
+              <Legend wrapperStyle={{ direction: 'rtl' }} />
               <Bar dataKey="quoted" name={he.reports.quoted} fill="#94a3b8" radius={[4, 4, 0, 0]} />
               <Bar dataKey="won" name={he.reports.won} fill="#2563eb" radius={[4, 4, 0, 0]} />
             </BarChart>
