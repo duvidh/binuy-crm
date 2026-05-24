@@ -1,11 +1,17 @@
 import type { Request, Response } from 'express';
-import { asyncHandler } from '../utils/errors.js';
+import { asyncHandler, badRequest } from '../utils/errors.js';
 import { prisma } from '../utils/prisma.js';
 import { getProfitability } from '../services/project.service.js';
 
 function dateRange(req: Request) {
-  const from = req.query.from ? new Date(req.query.from as string) : new Date(new Date().getFullYear(), 0, 1);
-  const to = req.query.to ? new Date(req.query.to as string) : new Date();
+  const parse = (v: unknown, fallback: Date): Date => {
+    if (!v) return fallback;
+    const d = new Date(v as string);
+    if (Number.isNaN(d.getTime())) throw badRequest('תאריך לא תקין');
+    return d;
+  };
+  const from = parse(req.query.from, new Date(new Date().getFullYear(), 0, 1));
+  const to = parse(req.query.to, new Date());
   return { from, to };
 }
 

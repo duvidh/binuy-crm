@@ -89,7 +89,10 @@ export async function login(email: string, password: string, ip?: string) {
 
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
-    const attempts = user.failedLoginAttempts + 1;
+    // If a previous lock has already expired, start the counter fresh so the
+    // user gets a full new window instead of being re-locked on one attempt.
+    const lockExpired = user.lockedUntil != null && user.lockedUntil <= new Date();
+    const attempts = (lockExpired ? 0 : user.failedLoginAttempts) + 1;
     const lockedUntil =
       attempts >= MAX_FAILED ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null;
     await prisma.user.update({
