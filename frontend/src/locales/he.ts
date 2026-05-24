@@ -41,6 +41,7 @@ export const he = {
   nav: {
     dashboard: 'דשבורד',
     contacts: 'לידים ולקוחות',
+    pipeline: 'פייפליין',
     projects: 'פרויקטים',
     quotes: 'הצעות מחיר',
     finance: 'כספים',
@@ -464,6 +465,8 @@ export const he = {
     moveToStage: 'העבר לשלב',
     moveUp: 'הזז אחורה',
     moveDown: 'הזז קדימה',
+    nextStage: 'שלב הבא',
+    prevStage: 'שלב קודם',
     listTypes: {
       city: 'ערים',
       projectType: 'סוגי פרויקטים',

@@ -9,6 +9,7 @@ import { he } from '@/locales/he';
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const ContactsPage = lazy(() => import('@/pages/ContactsPage').then((m) => ({ default: m.ContactsPage })));
 const ContactDetailPage = lazy(() => import('@/pages/ContactDetailPage').then((m) => ({ default: m.ContactDetailPage })));
+const PipelineBoardPage = lazy(() => import('@/pages/PipelineBoardPage').then((m) => ({ default: m.PipelineBoardPage })));
 const QuotesPage = lazy(() => import('@/pages/QuotesPage').then((m) => ({ default: m.QuotesPage })));
 const QuoteEditorPage = lazy(() => import('@/pages/QuoteEditorPage').then((m) => ({ default: m.QuoteEditorPage })));
 const QuoteSignPage = lazy(() => import('@/pages/QuoteSignPage').then((m) => ({ default: m.QuoteSignPage })));
@@ -57,6 +58,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="contacts" element={<ContactsPage />} />
           <Route path="contacts/:id" element={<ContactDetailPage />} />
+          <Route path="pipeline" element={<PipelineBoardPage />} />
           <Route path="quotes" element={<QuotesPage />} />
           <Route path="quotes/new" element={<QuoteEditorPage />} />
           <Route path="quotes/:id" element={<QuoteEditorPage />} />

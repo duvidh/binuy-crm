@@ -230,10 +230,13 @@ function PipelinePanel({
   const move = useMoveContactStage();
   const [stageId, setStageId] = useState('');
 
-  const submit = async () => {
-    if (!stageId) return;
+  const stageList = stages ?? [];
+  const currentStageId = entries[0]?.stage.id;
+  const currentIndex = stageList.findIndex((s) => s.id === currentStageId);
+
+  const moveTo = async (id: string) => {
     try {
-      await move.mutateAsync({ id: contactId, stageId });
+      await move.mutateAsync({ id: contactId, stageId: id });
       setStageId('');
       toast.success(he.common.saved);
     } catch (e) {
@@ -250,14 +253,28 @@ function PipelinePanel({
             <Select value={stageId} onValueChange={setStageId}>
               <SelectTrigger><SelectValue placeholder={he.settings.pipeline} /></SelectTrigger>
               <SelectContent>
-                {(stages ?? []).map((s) => (
+                {stageList.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={submit} disabled={!stageId || move.isPending}>
+          <Button onClick={() => stageId && moveTo(stageId)} disabled={!stageId || move.isPending}>
             <Plus className="h-4 w-4" /> {he.settings.moveToStage}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={move.isPending || currentIndex <= 0}
+            onClick={() => moveTo(stageList[currentIndex - 1].id)}
+          >
+            {he.settings.prevStage}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={move.isPending || stageList.length === 0 || currentIndex >= stageList.length - 1}
+            onClick={() => moveTo(stageList[currentIndex < 0 ? 0 : currentIndex + 1].id)}
+          >
+            {he.settings.nextStage}
           </Button>
         </div>
 

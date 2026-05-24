@@ -10,6 +10,7 @@ import {
   Settings,
   HardHat,
   Wallet,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { he } from '@/locales/he';
@@ -17,6 +18,7 @@ import { he } from '@/locales/he';
 const navItems = [
   { to: '/', label: he.nav.dashboard, icon: LayoutDashboard, end: true },
   { to: '/contacts', label: he.nav.contacts, icon: Users },
+  { to: '/pipeline', label: he.nav.pipeline, icon: GitBranch },
   { to: '/projects', label: he.nav.projects, icon: Building2 },
   { to: '/quotes', label: he.nav.quotes, icon: FileText },
   { to: '/finance', label: he.nav.finance, icon: Wallet },

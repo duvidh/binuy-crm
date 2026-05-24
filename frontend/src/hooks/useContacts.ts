@@ -37,6 +37,15 @@ export function useContactsKanban() {
   });
 }
 
+export type PipelineContact = Contact & { stageId: string | null };
+
+export function useContactsPipeline() {
+  return useQuery({
+    queryKey: ['contacts', 'pipeline-board'],
+    queryFn: async () => (await api.get<PipelineContact[]>('/contacts/pipeline')).data,
+  });
+}
+
 export function useContact(id?: string) {
   return useQuery({
     queryKey: ['contact', id],
@@ -104,6 +113,7 @@ export function useMoveContactStage() {
       (await api.post(`/contacts/${id}/pipeline-stage`, { stageId })).data,
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['contact', vars.id] });
+      qc.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 }

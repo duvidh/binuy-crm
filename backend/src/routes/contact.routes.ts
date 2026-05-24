@@ -9,6 +9,7 @@ const NO_VIEWER = ['ADMIN', 'SALES', 'PROJECT_MANAGER', 'ACCOUNTANT'];
 
 router.get('/', ctrl.list);
 router.get('/kanban', ctrl.kanban);
+router.get('/pipeline', ctrl.pipelineBoard);
 router.get('/export', ctrl.exportCsv);
 router.get('/comments', comments.listComments);
 router.get('/:id', ctrl.getOne);

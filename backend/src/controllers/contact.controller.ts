@@ -55,6 +55,17 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => {
   res.json(contact);
 });
 
+// Customers grouped by their current pipeline stage (for the pipeline board).
+export const pipelineBoard = asyncHandler(async (_req: Request, res: Response) => {
+  const contacts = await prisma.contact.findMany({
+    where: { deletedAt: null, status: 'CUSTOMER' },
+    orderBy: { updatedAt: 'desc' },
+    take: 500,
+    include: { pipelineEntries: { orderBy: { enteredAt: 'desc' }, take: 1, select: { stageId: true } } },
+  });
+  res.json(contacts.map((c) => ({ ...c, stageId: c.pipelineEntries[0]?.stageId ?? null })));
+});
+
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const input = cleanEmail(contactCreateSchema.parse(req.body));
   const contact = await prisma.contact.create({ data: input });
