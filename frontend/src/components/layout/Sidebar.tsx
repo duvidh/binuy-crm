@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   HardHat,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { he } from '@/locales/he';
@@ -18,6 +19,7 @@ const navItems = [
   { to: '/contacts', label: he.nav.contacts, icon: Users },
   { to: '/projects', label: he.nav.projects, icon: Building2 },
   { to: '/quotes', label: he.nav.quotes, icon: FileText },
+  { to: '/finance', label: he.nav.finance, icon: Wallet },
   { to: '/calendar', label: he.nav.calendar, icon: Calendar },
   { to: '/tasks', label: he.nav.tasks, icon: CheckSquare },
   { to: '/reports', label: he.nav.reports, icon: BarChart3 },

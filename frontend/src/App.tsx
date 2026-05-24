@@ -10,6 +10,9 @@ import { QuotesPage } from '@/pages/QuotesPage';
 import { QuoteEditorPage } from '@/pages/QuoteEditorPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { QuoteSignPage } from '@/pages/QuoteSignPage';
+import { ProjectsPage } from '@/pages/ProjectsPage';
+import { ProjectDetailPage } from '@/pages/ProjectDetailPage';
+import { FinancePage } from '@/pages/FinancePage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { he } from '@/locales/he';
 
@@ -50,7 +53,9 @@ export default function App() {
         <Route path="quotes" element={<QuotesPage />} />
         <Route path="quotes/new" element={<QuoteEditorPage />} />
         <Route path="quotes/:id" element={<QuoteEditorPage />} />
-        <Route path="projects" element={<PlaceholderPage titleKey="projects" />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="projects/:id" element={<ProjectDetailPage />} />
+        <Route path="finance" element={<FinancePage />} />
         <Route path="calendar" element={<PlaceholderPage titleKey="calendar" />} />
         <Route path="tasks" element={<PlaceholderPage titleKey="tasks" />} />
         <Route path="reports" element={<PlaceholderPage titleKey="reports" />} />

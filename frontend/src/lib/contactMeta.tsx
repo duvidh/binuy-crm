@@ -29,3 +29,24 @@ export const quoteStatusVariant: Record<QuoteStatus, BadgeProps['variant']> = {
 export function quoteStatusLabel(s: QuoteStatus) {
   return he.quotes.statuses[s] ?? s;
 }
+
+import type { ProjectStatus } from '@/types';
+
+export const projectStatusVariant: Record<ProjectStatus, BadgeProps['variant']> = {
+  PLANNING: 'secondary',
+  APPROVED: 'default',
+  IN_PROGRESS: 'warning',
+  ON_HOLD: 'secondary',
+  COMPLETED: 'success',
+  CANCELLED: 'destructive',
+};
+
+export function projectStatusLabel(s: ProjectStatus) {
+  return he.projects.status[s] ?? s;
+}
+
+export const paymentStatusVariant: Record<string, BadgeProps['variant']> = {
+  PAID: 'success',
+  PENDING: 'warning',
+  OVERDUE: 'destructive',
+};

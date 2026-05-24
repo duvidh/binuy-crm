@@ -9,6 +9,8 @@ import quoteRoutes from './quote.routes.js';
 import publicRoutes from './public.routes.js';
 import userRoutes from './user.routes.js';
 import tagRoutes from './tag.routes.js';
+import projectRoutes from './project.routes.js';
+import financeRoutes from './finance.routes.js';
 
 const router = Router();
 
@@ -23,5 +25,7 @@ router.use('/dashboard', authenticate, dashboardRoutes);
 router.use('/quotes', authenticate, quoteRoutes);
 router.use('/users', authenticate, userRoutes);
 router.use('/tags', authenticate, tagRoutes);
+router.use('/projects', authenticate, projectRoutes);
+router.use('/finance', authenticate, financeRoutes);
 
 export default router;
