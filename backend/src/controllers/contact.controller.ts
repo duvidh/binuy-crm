@@ -154,6 +154,18 @@ export const importContacts = asyncHandler(async (req: Request, res: Response) =
   res.json({ created, errors });
 });
 
+// Generate (or reuse) a client-portal token for this contact.
+export const portalToken = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const contact = await prisma.contact.findFirst({ where: { id, deletedAt: null } });
+  if (!contact) throw notFound('ליד/לקוח לא נמצא');
+  const { randomBytes } = await import('crypto');
+  const token = randomBytes(20).toString('hex');
+  const expiresAt = new Date(Date.now() + 90 * 86400000);
+  await prisma.clientPortalToken.create({ data: { contactId: id, token, expiresAt } });
+  res.json({ token, portalUrl: `/portal/${token}` });
+});
+
 // Timeline of activity entries that reference this contact.
 export const activity = asyncHandler(async (req: Request, res: Response) => {
   const logs = await prisma.activityLog.findMany({

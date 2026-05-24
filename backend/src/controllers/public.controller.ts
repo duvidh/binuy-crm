@@ -18,6 +18,23 @@ export const getQuoteByToken = asyncHandler(async (req: Request, res: Response) 
   res.json({ quote, company });
 });
 
+// Client portal: read-only view of a customer's quotes, projects, payments.
+export const getPortal = asyncHandler(async (req: Request, res: Response) => {
+  const tokenRow = await prisma.clientPortalToken.findUnique({ where: { token: req.params.token } });
+  if (!tokenRow || (tokenRow.expiresAt && tokenRow.expiresAt < new Date())) {
+    throw notFound('הקישור לא נמצא או פג תוקף');
+  }
+  await prisma.clientPortalToken.update({ where: { id: tokenRow.id }, data: { lastUsed: new Date() } });
+  const [contact, company, quotes, projects, payments] = await Promise.all([
+    prisma.contact.findUnique({ where: { id: tokenRow.contactId }, select: { id: true, fullName: true, phone: true } }),
+    prisma.companySettings.findUnique({ where: { id: 'default' } }),
+    prisma.quote.findMany({ where: { contactId: tokenRow.contactId, deletedAt: null }, select: { id: true, quoteNumber: true, total: true, status: true, date: true } }),
+    prisma.project.findMany({ where: { contactId: tokenRow.contactId, deletedAt: null }, select: { id: true, name: true, status: true, progress: true } }),
+    prisma.payment.findMany({ where: { contactId: tokenRow.contactId, deletedAt: null }, select: { id: true, amount: true, status: true, dueDate: true } }),
+  ]);
+  res.json({ contact, company, quotes, projects, payments });
+});
+
 export const signQuote = asyncHandler(async (req: Request, res: Response) => {
   const { signatureData, signerName } = signSchema.parse(req.body);
   const quote = await prisma.quote.findFirst({ where: { signToken: req.params.token, deletedAt: null } });

@@ -14,6 +14,8 @@ import financeRoutes from './finance.routes.js';
 import taskRoutes from './task.routes.js';
 import notificationRoutes from './notification.routes.js';
 import automationRoutes from './automation.routes.js';
+import reportRoutes from './report.routes.js';
+import adminRoutes from './admin.routes.js';
 
 const router = Router();
 
@@ -33,5 +35,7 @@ router.use('/finance', authenticate, financeRoutes);
 router.use('/tasks', authenticate, taskRoutes);
 router.use('/notifications', authenticate, notificationRoutes);
 router.use('/automations', authenticate, automationRoutes);
+router.use('/reports', authenticate, reportRoutes);
+router.use('/admin', authenticate, adminRoutes);
 
 export default router;

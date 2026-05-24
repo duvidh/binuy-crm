@@ -86,7 +86,7 @@ Run from the repo root:
 
 ---
 
-## What's Implemented (MVP — Phases 1–4)
+## What's Implemented (All 8 Phases)
 
 **Phase 1 — Foundation**
 - Monorepo (npm workspaces), full Prisma schema (all spec models incl. section 9)
@@ -115,7 +115,26 @@ Run from the repo root:
 - PDF export, quote templates (duplicate), tokenized public sign flow (`/quote/sign/:token`) with canvas signature
 - Invoice model (חשבונית מס / קבלה / חשבונית מס-קבלה, עוסק פטור, ניכוי מס במקור)
 
-Sections under `/projects`, `/calendar`, `/tasks`, `/reports` show a "coming soon" placeholder — those are Phases 5–8.
+**Phase 5 — Projects**
+- CRUD with card view + detail page tabs: overview, milestones (with progress), permits (30-day expiry warning), template-based checklists, payments, expenses, before/during/after photo gallery, site log (יומן עבודה)
+- Profitability (revenue − expenses, margin %) auto-computed; over-budget warning
+
+**Phase 6 — Financials**
+- Payments tracking (paid/pending/overdue); project `budgetUsed` recalculated from paid payments
+- Aging report (0-30 / 31-60 / 61-90 / 90+), cash-flow forecast (30/60/90d)
+- Suppliers with star ratings; project expenses linked to suppliers
+
+**Phase 7 — Calendar, Tasks & Notifications**
+- Tasks with Today/Week/Overdue/All filters, priority, type, contact/project links, complete toggle
+- FullCalendar (Hebrew, RTL, month/week/day/agenda), click-to-create, drag-to-reschedule
+- Notification bell + unread count; node-cron scheduler (5 min) for due/overdue tasks, expiring permits, overdue payments
+- Automation engine: rules with triggers (lead created, lead idle, quote accepted, project status changed, payment overdue) → actions (create task, assign, notify, queue message); managed in Settings
+
+**Phase 8 — Settings, Reports & Polish**
+- Reports: sales (chart), lead-source ROI, project profitability, sales-by-rep — with date range + CSV export
+- Audit log viewer (admin), message templates with `{{variable}}` extraction, soft-delete trash with 30-day restore, JSON data backup
+- Client portal (public `/portal/:token`) — customer sees their quotes, projects, payments
+- Route-level code splitting (React.lazy), loading skeletons, toasts, confirm dialogs, keyboard shortcuts, mobile-responsive
 
 ---
 

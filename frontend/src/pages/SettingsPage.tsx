@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch, Zap } from 'lucide-react';
+import { Plus, Trash2, Building2, ListTree, Users as UsersIcon, GitBranch, Zap, MessageSquare, History, RotateCcw, Download } from 'lucide-react';
+import { api } from '@/lib/api';
+import { formatDateTime } from '@/lib/format';
+import { useTemplates, useCreateTemplate, useDeleteTemplate, useAuditLog, useTrash, useRestore } from '@/hooks/useAdmin';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,14 +43,20 @@ export function SettingsPage() {
           <TabsTrigger value="lists"><ListTree className="h-4 w-4" /> {he.settings.lists}</TabsTrigger>
           <TabsTrigger value="company"><Building2 className="h-4 w-4" /> {he.settings.company}</TabsTrigger>
           <TabsTrigger value="pipeline"><GitBranch className="h-4 w-4" /> {he.settings.pipeline}</TabsTrigger>
+          <TabsTrigger value="templates"><MessageSquare className="h-4 w-4" /> {he.templates.title}</TabsTrigger>
           {isAdmin && <TabsTrigger value="automations"><Zap className="h-4 w-4" /> {he.automations.title}</TabsTrigger>}
           {isAdmin && <TabsTrigger value="users"><UsersIcon className="h-4 w-4" /> {he.settings.users}</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="audit"><History className="h-4 w-4" /> {he.audit.title}</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="trash"><RotateCcw className="h-4 w-4" /> {he.trash.title}</TabsTrigger>}
         </TabsList>
         <TabsContent value="lists"><ListsTab /></TabsContent>
         <TabsContent value="company"><CompanyTab /></TabsContent>
         <TabsContent value="pipeline"><PipelineTab /></TabsContent>
+        <TabsContent value="templates"><TemplatesTab /></TabsContent>
         {isAdmin && <TabsContent value="automations"><AutomationsTab /></TabsContent>}
         {isAdmin && <TabsContent value="users"><UsersTab /></TabsContent>}
+        {isAdmin && <TabsContent value="audit"><AuditTab /></TabsContent>}
+        {isAdmin && <TabsContent value="trash"><TrashTab /></TabsContent>}
       </Tabs>
     </div>
   );
@@ -168,6 +178,133 @@ function PipelineTab() {
             </li>
           ))}
         </ol>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TemplatesTab() {
+  const { data: templates } = useTemplates();
+  const create = useCreateTemplate();
+  const del = useDeleteTemplate();
+  const [form, setForm] = useState({ channel: 'whatsapp', name: '', body: '' });
+
+  const add = async () => {
+    if (!form.name.trim() || !form.body.trim()) {
+      toast.error(he.common.required);
+      return;
+    }
+    try {
+      await create.mutateAsync(form);
+      setForm({ channel: 'whatsapp', name: '', body: '' });
+      toast.success(he.common.saved);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6">
+          <p className="mb-3 text-sm text-muted-foreground">{he.templates.variablesHint}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <Label>{he.templates.channel}</Label>
+              <Select value={form.channel} onValueChange={(v) => setForm((f) => ({ ...f, channel: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{(['whatsapp', 'sms', 'email'] as const).map((c) => <SelectItem key={c} value={c}>{he.templates.channels[c]}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2"><Label>{he.templates.name}</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+            <div className="sm:col-span-3"><Label>{he.templates.body}</Label><Textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} /></div>
+            <div><Button onClick={add}><Plus className="h-4 w-4" /> {he.templates.add}</Button></div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6">
+          {!templates || templates.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{he.templates.empty}</p> : (
+            <div className="space-y-2">
+              {templates.map((t) => (
+                <div key={t.id} className="flex items-start justify-between rounded-lg border p-3">
+                  <div>
+                    <div className="flex items-center gap-2"><span className="font-medium">{t.name}</span><Badge variant="secondary">{he.templates.channels[t.channel as keyof typeof he.templates.channels] ?? t.channel}</Badge></div>
+                    <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{t.body}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => del.mutate(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AuditTab() {
+  const { data: logs } = useAuditLog();
+  const downloadBackup = async () => {
+    const res = await api.get('/admin/backup', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'crm-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="flex items-center justify-between pt-6">
+          <div><div className="font-medium">{he.backup.title}</div><div className="text-sm text-muted-foreground">{he.backup.hint}</div></div>
+          <Button variant="outline" onClick={downloadBackup}><Download className="h-4 w-4" /> {he.backup.download}</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6">
+          {!logs || logs.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{he.audit.empty}</p> : (
+            <Table>
+              <TableHeader><TableRow><TableHead>{he.audit.user}</TableHead><TableHead>{he.audit.entity}</TableHead><TableHead>{he.audit.action}</TableHead><TableHead>{he.audit.date}</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {logs.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell>{l.user?.name ?? '—'}</TableCell>
+                    <TableCell>{l.entityType}</TableCell>
+                    <TableCell><Badge variant="secondary">{he.audit.actions[l.action as keyof typeof he.audit.actions] ?? l.action}</Badge></TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(l.createdAt)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function TrashTab() {
+  const { data } = useTrash();
+  const restore = useRestore();
+  const all = [...(data?.contacts ?? []), ...(data?.projects ?? []), ...(data?.quotes ?? [])];
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <p className="mb-3 text-sm text-muted-foreground">{he.trash.hint}</p>
+        {all.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{he.trash.empty}</p> : (
+          <div className="space-y-2">
+            {all.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div><span className="font-medium">{item.label}</span> <Badge variant="secondary">{item.type}</Badge></div>
+                <Button variant="outline" size="sm" onClick={async () => { await restore.mutateAsync({ type: item.type, id: item.id }); toast.success(he.common.saved); }}>
+                  <RotateCcw className="h-4 w-4" /> {he.trash.restore}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

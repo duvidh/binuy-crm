@@ -10,7 +10,9 @@ import {
   Mail,
   MapPin,
   Plus,
+  Share2,
 } from 'lucide-react';
+import { api } from '@/lib/api';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +51,13 @@ export function ContactDetailPage() {
   const isCustomer = contact.status === 'CUSTOMER';
   const f = he.contacts.fields;
 
+  const sharePortal = async () => {
+    const res = await api.post(`/contacts/${contact.id}/portal-token`);
+    const url = `${window.location.origin}${res.data.portalUrl}`;
+    await navigator.clipboard.writeText(url).catch(() => {});
+    toast.success(`${he.portal.linkCopied}: ${url}`);
+  };
+
   return (
     <div>
       <PageHeader title={contact.fullName}>
@@ -59,6 +68,11 @@ export function ContactDetailPage() {
         {!isCustomer && (
           <Button className="bg-accent hover:bg-accent/90" onClick={() => setConfirmConvert(true)}>
             <UserCheck className="h-4 w-4" /> {he.contacts.convert}
+          </Button>
+        )}
+        {isCustomer && (
+          <Button variant="outline" onClick={sharePortal}>
+            <Share2 className="h-4 w-4" /> {he.portal.share}
           </Button>
         )}
         <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4" /> {he.common.edit}</Button>
