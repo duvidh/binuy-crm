@@ -111,7 +111,7 @@ export function QuoteSignPage() {
                   <h1 className="text-xl font-bold">הצעת מחיר {quote?.quoteNumber}</h1>
                   <p className="text-sm text-muted-foreground">תאריך: {formatDate(quote?.date)}</p>
                 </div>
-                <div className="text-left">
+                <div className="text-end">
                   <div className="text-sm text-muted-foreground">{he.quotes.total}</div>
                   <div className="text-2xl font-bold text-primary">{formatCurrency(quote?.total)}</div>
                 </div>
@@ -120,17 +120,17 @@ export function QuoteSignPage() {
               <table className="mb-6 w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-right">{he.quotes.description}</th>
-                    <th className="py-2 text-left">{he.quotes.quantity}</th>
-                    <th className="py-2 text-left">{he.quotes.lineTotal}</th>
+                    <th className="py-2 text-start">{he.quotes.description}</th>
+                    <th className="py-2 text-end">{he.quotes.quantity}</th>
+                    <th className="py-2 text-end">{he.quotes.lineTotal}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {quote?.items?.map((it, i) => (
                     <tr key={i} className="border-b">
                       <td className="py-2">{it.description}</td>
-                      <td className="py-2 text-left" dir="ltr">{it.quantity} {it.unit}</td>
-                      <td className="py-2 text-left">{formatCurrency(it.total)}</td>
+                      <td className="py-2 text-end" dir="ltr">{it.quantity} {it.unit}</td>
+                      <td className="py-2 text-end">{formatCurrency(it.total)}</td>
                     </tr>
                   ))}
                 </tbody>

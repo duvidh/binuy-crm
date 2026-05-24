@@ -34,7 +34,7 @@ export const DialogContent = React.forwardRef<
 DialogContent.displayName = 'DialogContent';
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex flex-col space-y-1.5 text-right', className)} {...props} />;
+  return <div className={cn('flex flex-col space-y-1.5 text-start', className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
