@@ -106,6 +106,35 @@ export async function moveToStage(contactId: string, stageId: string) {
   });
 }
 
+// Place a contact into the first active pipeline stage if they have no entry yet.
+// Idempotent — safe to call on contact creation and in the backfill.
+export async function seedFirstStageIfMissing(contactId: string) {
+  const existing = await prisma.contactPipelineEntry.findFirst({ where: { contactId } });
+  if (existing) return null;
+  const firstStage = await prisma.pipelineStage.findFirst({
+    where: { isActive: true },
+    orderBy: { order: 'asc' },
+  });
+  if (!firstStage) return null;
+  return prisma.contactPipelineEntry.create({
+    data: { contactId, stageId: firstStage.id },
+  });
+}
+
+// One-shot backfill: ensure every non-deleted contact has at least one pipeline entry.
+export async function backfillPipelineEntries() {
+  const contacts = await prisma.contact.findMany({
+    where: { deletedAt: null, pipelineEntries: { none: {} } },
+    select: { id: true },
+  });
+  let seeded = 0;
+  for (const c of contacts) {
+    const created = await seedFirstStageIfMissing(c.id);
+    if (created) seeded++;
+  }
+  return { seeded, scanned: contacts.length };
+}
+
 export async function convertToCustomer(id: string) {
   const contact = await prisma.contact.update({
     where: { id },

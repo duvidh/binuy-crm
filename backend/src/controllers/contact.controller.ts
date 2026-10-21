@@ -55,10 +55,11 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => {
   res.json(contact);
 });
 
-// Customers grouped by their current pipeline stage (for the pipeline board).
+// All active contacts (leads + customers) grouped by their current pipeline stage.
+// A single sales funnel covers both lead → sale and the post-sale pipeline.
 export const pipelineBoard = asyncHandler(async (_req: Request, res: Response) => {
   const contacts = await prisma.contact.findMany({
-    where: { deletedAt: null, status: 'CUSTOMER' },
+    where: { deletedAt: null },
     orderBy: { updatedAt: 'desc' },
     take: 500,
     include: { pipelineEntries: { orderBy: { enteredAt: 'desc' }, take: 1, select: { stageId: true } } },
@@ -66,9 +67,17 @@ export const pipelineBoard = asyncHandler(async (_req: Request, res: Response) =
   res.json(contacts.map((c) => ({ ...c, stageId: c.pipelineEntries[0]?.stageId ?? null })));
 });
 
+// One-shot ADMIN action: ensure every existing contact has a pipeline entry.
+export const backfillPipeline = asyncHandler(async (_req: Request, res: Response) => {
+  const result = await contactService.backfillPipelineEntries();
+  res.json(result);
+});
+
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const input = cleanEmail(contactCreateSchema.parse(req.body));
   const contact = await prisma.contact.create({ data: input });
+  // Every new contact enters the pipeline at the first stage automatically.
+  await contactService.seedFirstStageIfMissing(contact.id);
   logActivity({
     userId: req.user?.userId,
     entityType: 'Contact',

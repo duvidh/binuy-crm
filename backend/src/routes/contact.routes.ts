@@ -17,6 +17,7 @@ router.get('/:id/activity', ctrl.activity);
 
 router.post('/', authorize(...NO_VIEWER), ctrl.create);
 router.post('/import', authorize(...NO_VIEWER), ctrl.importContacts);
+router.post('/pipeline/backfill', authorize('ADMIN'), ctrl.backfillPipeline);
 router.post('/bulk', authorize(...NO_VIEWER), ctrl.bulk);
 router.post('/comments', comments.createComment);
 router.post('/:id/convert', authorize(...NO_VIEWER), ctrl.convert);

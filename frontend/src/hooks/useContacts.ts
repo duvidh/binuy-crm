@@ -30,13 +30,6 @@ export function useContacts(query: ContactQuery) {
   });
 }
 
-export function useContactsKanban() {
-  return useQuery({
-    queryKey: ['contacts', 'kanban'],
-    queryFn: async () => (await api.get<Contact[]>('/contacts/kanban')).data,
-  });
-}
-
 export type PipelineContact = Contact & { stageId: string | null };
 
 export function useContactsPipeline() {

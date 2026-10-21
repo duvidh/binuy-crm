@@ -94,7 +94,7 @@ export function ContactDetailPage() {
           <TabsTrigger value="details">{he.contacts.tabs.details}</TabsTrigger>
           <TabsTrigger value="activity">{he.contacts.tabs.activity}</TabsTrigger>
           {isCustomer && <TabsTrigger value="quotes">{he.contacts.tabs.quotes}</TabsTrigger>}
-          {isCustomer && <TabsTrigger value="pipeline">{he.contacts.tabs.pipeline}</TabsTrigger>}
+          <TabsTrigger value="pipeline">{he.contacts.tabs.pipeline}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details">
@@ -174,11 +174,9 @@ export function ContactDetailPage() {
           </TabsContent>
         )}
 
-        {isCustomer && (
-          <TabsContent value="pipeline">
-            <PipelinePanel contactId={contact.id} entries={contact.pipelineEntries ?? []} />
-          </TabsContent>
-        )}
+        <TabsContent value="pipeline">
+          <PipelinePanel contactId={contact.id} entries={contact.pipelineEntries ?? []} />
+        </TabsContent>
       </Tabs>
 
       <ContactFormDialog open={editOpen} onOpenChange={setEditOpen} contact={contact} />

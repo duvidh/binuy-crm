@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, Search, Download, Users, LayoutList, KanbanSquare, Trash2, UserCog } from 'lucide-react';
+import { Plus, Search, Download, Users, Trash2, UserCog } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ContactsTable } from '@/components/contacts/ContactsTable';
-import { ContactsKanban } from '@/components/contacts/ContactsKanban';
 import { ContactFormDialog } from '@/components/contacts/ContactFormDialog';
 import { useContacts, useBulkContacts, type ContactQuery } from '@/hooks/useContacts';
 import { useListValues } from '@/hooks/useSettings';
@@ -21,7 +20,6 @@ import { he } from '@/locales/he';
 
 export function ContactsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search);
   const [page, setPage] = useState(1);
@@ -132,17 +130,9 @@ export function ContactsPage() {
           </SelectContent>
         </Select>
 
-        <div className="ms-auto flex rounded-lg border p-0.5">
-          <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('list')}>
-            <LayoutList className="h-4 w-4" /> {he.contacts.listView}
-          </Button>
-          <Button variant={view === 'kanban' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('kanban')}>
-            <KanbanSquare className="h-4 w-4" /> {he.contacts.kanbanView}
-          </Button>
-        </div>
       </div>
 
-      {selectedIds.length > 0 && view === 'list' && (
+      {selectedIds.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border bg-secondary/50 px-3 py-2 text-sm">
           <span className="font-medium">{he.common.selected}: {selectedIds.length}</span>
           <Select onValueChange={(v) => runBulk('assign', v === 'none' ? '' : v)}>
@@ -166,9 +156,7 @@ export function ContactsPage() {
         </div>
       )}
 
-      {view === 'kanban' ? (
-        <ContactsKanban />
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>

@@ -37,7 +37,12 @@ function Card({ contact }: { contact: PipelineContact }) {
       onClick={() => navigate(`/contacts/${contact.id}`)}
       className={`cursor-grab rounded-lg border bg-card p-3 shadow-sm hover:shadow ${isDragging ? 'opacity-40' : ''}`}
     >
-      <div className="font-medium">{contact.fullName}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-medium">{contact.fullName}</div>
+        <Badge variant={contact.status === 'CUSTOMER' ? 'success' : 'secondary'} className="shrink-0 text-[10px]">
+          {he.contacts.status[contact.status]}
+        </Badge>
+      </div>
       <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground" dir="ltr">
         <Phone className="h-3 w-3" /> {formatPhone(contact.phone)}
       </div>
@@ -148,7 +153,7 @@ export function PipelineBoardPage() {
             <Column key={s.id} id={s.id} label={s.name} color={s.color} contacts={byStage[s.id] ?? []} droppable />
           ))}
           {unassigned.length > 0 && (
-            <Column id={UNASSIGNED} label={he.common.noResults} contacts={unassigned} droppable={false} />
+            <Column id={UNASSIGNED} label={he.settings.unassignedStage} contacts={unassigned} droppable={false} />
           )}
         </div>
         <DragOverlay>{active ? <Card contact={active} /> : null}</DragOverlay>

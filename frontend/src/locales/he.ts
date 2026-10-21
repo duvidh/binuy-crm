@@ -467,6 +467,7 @@ export const he = {
     moveDown: 'הזז קדימה',
     nextStage: 'שלב הבא',
     prevStage: 'שלב קודם',
+    unassignedStage: 'ללא שלב',
     listTypes: {
       city: 'ערים',
       projectType: 'סוגי פרויקטים',
