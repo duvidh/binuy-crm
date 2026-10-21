@@ -93,6 +93,17 @@ export function useReorderStages() {
   });
 }
 
+export function useBackfillPipeline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.post<{ seeded: number; scanned: number }>('/contacts/pipeline/backfill')).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+}
+
 export function useCompany() {
   return useQuery({
     queryKey: ['settings', 'company'],

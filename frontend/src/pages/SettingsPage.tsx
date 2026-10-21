@@ -23,6 +23,7 @@ import {
   useUpdateStage,
   useDeleteStage,
   useReorderStages,
+  useBackfillPipeline,
   useCompany,
   useUpdateCompany,
 } from '@/hooks/useSettings';
@@ -176,10 +177,20 @@ function PipelineTab() {
   const updateStage = useUpdateStage();
   const deleteStage = useDeleteStage();
   const reorderStages = useReorderStages();
+  const backfill = useBackfillPipeline();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#3b82f6');
 
   const stages = data ?? [];
+
+  const runBackfill = async () => {
+    try {
+      const { seeded, scanned } = await backfill.mutateAsync();
+      toast.success(he.settings.backfillResult(seeded, scanned));
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  };
 
   const add = async () => {
     if (!name.trim()) return;
@@ -249,6 +260,18 @@ function PipelineTab() {
           ))}
           {stages.length === 0 && <p className="text-sm text-muted-foreground">{he.common.noResults}</p>}
         </ol>
+
+        {isAdmin && stages.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-start justify-between gap-3 rounded-md border border-dashed p-4">
+            <div className="flex-1 min-w-[220px]">
+              <div className="font-medium">{he.settings.backfillTitle}</div>
+              <p className="mt-1 text-sm text-muted-foreground">{he.settings.backfillHint}</p>
+            </div>
+            <Button variant="outline" onClick={runBackfill} disabled={backfill.isPending}>
+              <RotateCcw className="h-4 w-4" /> {he.settings.backfillAction}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

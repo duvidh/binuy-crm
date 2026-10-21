@@ -468,6 +468,10 @@ export const he = {
     nextStage: 'שלב הבא',
     prevStage: 'שלב קודם',
     unassignedStage: 'ללא שלב',
+    backfillTitle: 'סנכרון לידים ישנים',
+    backfillHint: 'כניסה אוטומטית של כל איש קשר שעוד לא נמצא בשלב פייפליין לשלב הראשון. פעולה חד-פעמית בטוחה.',
+    backfillAction: 'סנכרן לידים ישנים',
+    backfillResult: (seeded: number, scanned: number) => `סונכרנו ${seeded} אנשי קשר מתוך ${scanned} שנסרקו.`,
     listTypes: {
       city: 'ערים',
       projectType: 'סוגי פרויקטים',
